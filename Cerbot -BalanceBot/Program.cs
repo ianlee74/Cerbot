@@ -17,7 +17,9 @@ namespace Cerbot
         const int DIRECTION_FORWARD = 1;
         const int DIRECTION_REVERSE = 2;
 
-        private const int BALANCED_PITCH = -7;
+        private const int PID_FREQ_CALC_PERIOD = 10;
+
+        private const int BALANCED_PITCH = -1;
 
         private static CKMongooseImu _imu;
         private static InterruptPort _button;
@@ -79,9 +81,9 @@ namespace Cerbot
 
             while (true)
             {
-                if (startTime.AddSeconds(5) < DateTime.Now)
+                if (startTime.AddSeconds(PID_FREQ_CALC_PERIOD) < DateTime.Now)
                 {
-                    UpdateDisplay("PID FREQ: " + cnt/5, "IMU FREQ: " + _imu.UpdateFreqency);
+                    //UpdateDisplay("PID FREQ: " + cnt / PID_FREQ_CALC_PERIOD, "IMU FREQ: " + _imu.UpdateFreqency);
                     cnt = 0;
                     startTime = DateTime.Now;
                 }
@@ -93,7 +95,7 @@ namespace Cerbot
                 var pitch = (int)_imu.Pitch;
                 var pidSpeed = pid.Update(BALANCED_PITCH, pitch);
                 
-                //UpdateDisplay("PIT: " + pitch + " PID: " + pidSpeed);
+                UpdateDisplay("PIT: " + pitch + " PID: " + pidSpeed);
 #if DEBUG
                 Debug.Print("ROLL: " + (int)_ckdevice.Roll + "  YAW: " + (int)_ckdevice.Yaw + "  PITCH: " + pitch + "  ERRS: " + _ckdevice.Errors + "  PID: " + pidSpeed);
 #endif

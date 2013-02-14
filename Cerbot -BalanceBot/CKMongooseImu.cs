@@ -47,7 +47,19 @@ namespace IanLee
         private readonly byte[] _tBuffer = new byte[1024];
         private bool _find;
         private DateTime _startTime = DateTime.Now;
-        private int _cnt;
+        private int _readingFreqCnt;
+        private const int FREQ_CALC_PERIOD = 10;
+
+        private void PollingParser()
+        {
+            while (true)
+            {
+                if (_serialPort.BytesToRead == 0) continue;
+
+                _serialPort.Read(_tBuffer, 0, 1);
+
+            }
+        }
 
         private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
@@ -71,13 +83,13 @@ namespace IanLee
                 if ((_buffer[0] == (byte)'!') && (_buffer[1] == (byte)'A') && (_buffer[2] == (byte)'N') && (_buffer[3] == (byte)'G') && (_buffer[4] == (byte)':'))
                 {
                     // Count the update frequency metric.
-                    if (_startTime.AddSeconds(5) < DateTime.Now)
+                    if (_startTime.AddSeconds(FREQ_CALC_PERIOD) < DateTime.Now)
                     {
-                        UpdateFreqency = _cnt / 5;
-                        _cnt = 0;
+                        UpdateFreqency = _readingFreqCnt / FREQ_CALC_PERIOD;
+                        _readingFreqCnt = 0;
                         _startTime = DateTime.Now;
                     }
-                    _cnt++;
+                    _readingFreqCnt++;
 
                     try
                     {
