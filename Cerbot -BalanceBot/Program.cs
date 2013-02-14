@@ -19,7 +19,7 @@ namespace Cerbot
 
         private const int BALANCED_PITCH = -7;
 
-        private static CKMongooseImu _ckdevice;
+        private static CKMongooseImu _imu;
         private static InterruptPort _button;
 
         private static HD44780_Display _display;
@@ -45,8 +45,9 @@ namespace Cerbot
             UpdateDisplay("Cerbot says,", "    hello world!");
 
             // Initialize IMU
-            _ckdevice = new CKMongooseImu("COM3", 115200);
-            _ckdevice.Open();
+            _imu = new CKMongooseImu("COM3", 115200);
+            _imu.Open();
+            var pid = new Pid();
 
             Cerbot.InitializeCerbot.Motors();
             Cerbot.InitializeCerbot.ForwardLEDs();
@@ -54,7 +55,7 @@ namespace Cerbot
             _button = new InterruptPort(FEZCerberus.Pin.PC14, true, Port.ResistorMode.Disabled, Port.InterruptMode.InterruptEdgeLow);
             _button.OnInterrupt += (data1, data2, time) =>
                 {
-                    PID.Kd++;
+                    pid.Kd++;
                 };
 
             // LED tester
@@ -80,7 +81,7 @@ namespace Cerbot
             {
                 if (startTime.AddSeconds(5) < DateTime.Now)
                 {
-                    UpdateDisplay("PID FREQ: " + cnt/5, "IMU FREQ: " + _ckdevice.UpdateFreqency);
+                    UpdateDisplay("PID FREQ: " + cnt/5, "IMU FREQ: " + _imu.UpdateFreqency);
                     cnt = 0;
                     startTime = DateTime.Now;
                 }
@@ -89,8 +90,8 @@ namespace Cerbot
                 const int THRESHOLD = 1;
                 const int FALLING_THRESHOLD = 80;
 
-                var pitch = (int)_ckdevice.Pitch;
-                var pidSpeed = PID.Update(BALANCED_PITCH, pitch);
+                var pitch = (int)_imu.Pitch;
+                var pidSpeed = pid.Update(BALANCED_PITCH, pitch);
                 
                 //UpdateDisplay("PIT: " + pitch + " PID: " + pidSpeed);
 #if DEBUG
@@ -107,14 +108,14 @@ namespace Cerbot
                 }
                 else if (pitch > BALANCED_PITCH)
                 {
-                    speed = PID.Constrain(MOTOR_MIN_SPEED + (pidSpeed < 0 ? -pidSpeed : pidSpeed), MOTOR_MIN_SPEED, MOTOR_MAX_SPEED);
+                    speed = Pid.Constrain(MOTOR_MIN_SPEED + (pidSpeed < 0 ? -pidSpeed : pidSpeed), MOTOR_MIN_SPEED, MOTOR_MAX_SPEED);
                     dutyCycle = Cerbot.Motor.Forward(speed);       // Left LEDs
                     //UpdateDisplay(null, "Kd: " + Kd + " FWD DC: " + dutyCycle);
                     currentDirection = DIRECTION_FORWARD;
                 }
                 else if (pitch < BALANCED_PITCH)
                 {
-                    speed = PID.Constrain(MOTOR_MIN_SPEED + pidSpeed, MOTOR_MIN_SPEED, MOTOR_MAX_SPEED);
+                    speed = Pid.Constrain(MOTOR_MIN_SPEED + pidSpeed, MOTOR_MIN_SPEED, MOTOR_MAX_SPEED);
                     dutyCycle = Cerbot.Motor.Reverse(speed);        // Right LEDs
                     //UpdateDisplay(null, "Kd: " + Kd + " REV DC: " + dutyCycle);
                     currentDirection = DIRECTION_REVERSE;
