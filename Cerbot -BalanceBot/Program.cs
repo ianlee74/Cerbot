@@ -3,6 +3,7 @@ using System.Text;
 using GHI.OSHW.Hardware;
 using System.Threading;
 using System.IO.Ports;
+using IanLee;
 using Microsoft.SPOT.Hardware;
 
 namespace Cerbot
@@ -18,7 +19,7 @@ namespace Cerbot
 
         private const int BALANCED_PITCH = -7;
 
-        private static MongooseImu _ckdevice;
+        private static CKMongooseImu _ckdevice;
         private static InterruptPort _button;
 
         private static HD44780_Display _display;
@@ -44,8 +45,8 @@ namespace Cerbot
             UpdateDisplay("Cerbot says,", "    hello world!");
 
             // Initialize IMU
-            _ckdevice = new MongooseImu("COM3", 115200);
-            _ckdevice.open();
+            _ckdevice = new CKMongooseImu("COM3", 115200);
+            _ckdevice.Open();
 
             Cerbot.InitializeCerbot.Motors();
             Cerbot.InitializeCerbot.ForwardLEDs();
@@ -206,185 +207,4 @@ namespace Cerbot
             Cerbot.ForwardLEDs.SetLEDArray(leftLeds, rightLeds);
         }
     }
-
-    class MongooseImu
-    {
-        public delegate void ReceiveData(object _rool, object _pitch, object _yaw, object _temp, object _pressure);
-        public event ReceiveData ReceiveDataEvent;
-
-        private readonly SerialPort _serialPort;
-
-        public double Roll { get; private set; }
-        public double Pitch { get; private set; }
-        public double Yaw { get; private set; }
-        public double Temp { get; private set; }
-        public double Pressure { get; private set; }
-        public long Errors { get; private set; }
-
-        public MongooseImu(string com, int baund)
-        {
-            _serialPort = new SerialPort(com, baund);
-            _serialPort.DataReceived += new SerialDataReceivedEventHandler(SERIALRECEIVE);
-        }
-
-        public void open()
-        {
-            _serialPort.Open();
-        }
-
-        public void close()
-        {
-            _serialPort.Close();
-        }
-        public bool IsOpen()
-        {
-            return (_serialPort.IsOpen);
-        }
-
-
-
-        private byte[] buffer = new byte[1024];
-        private int countRead = 0;
-        private byte[] Tbuffer = new byte[1024];
-        private bool find = false;
-
-
-        private void SERIALRECEIVE(object sender, SerialDataReceivedEventArgs e)
-        {
-            var byteread = _serialPort.BytesToRead;
-            _serialPort.Read(Tbuffer, 0, byteread);
-
-            find = false;
-
-            for (int i = 0; i < byteread; i++)
-            {
-                if (Tbuffer[i] == 10)
-                {
-                    Array.Copy(Tbuffer, 0, buffer, countRead, byteread);
-                    find = true;
-                    break;
-                }
-            }
-
-            if (find)
-            {
-                countRead = 0;
-                if ((buffer[0] == (byte)'!') && (buffer[1] == (byte)'A') && (buffer[2] == (byte)'N') && (buffer[3] == (byte)'G') && (buffer[4] == (byte)':'))
-                {
-                    try
-                    {
-                        var str = new string(Encoding.UTF8.GetChars(buffer));
-                        var values = str.Split(',');
-
-                        Roll = double.Parse(values[1]);
-                        Pitch = double.Parse(values[2]);
-                        Yaw = double.Parse(values[3]);
-                        Temp = double.Parse(values[15]);
-                        Pressure = double.Parse(values[16]);
-
-                        if (ReceiveDataEvent != null) ReceiveDataEvent(Roll, Pitch, Yaw, Temp, Pressure);
-                    }
-                    catch
-                    {
-                        Errors++;
-                    }
-                }
-            }
-            else
-            {
-                Array.Copy(Tbuffer, 0, buffer, countRead, byteread);
-                countRead = countRead + byteread;
-            }
-        }
-    }
-    /*
-    public class Program
-    {
-        static SerialPort _imuSerialPort;
-        private static CKMongooseImu _imu;
-
-        public static void Main()
-        {
-            Debug.Print("Program started.");
-
-            _imuSerialPort = new SerialPort("COM3", 9600, Parity.None, (int)StopBits.One);
-            _imuSerialPort.Open();
-            //_imuSerialPort.DataReceived += OnImuSerialPortDataReceived;
-
-            _imu = new CKMongooseImu();
-
-            //Cerbot.InitializeCerbot.Motors();
-            //Cerbot.Motor.Forward(70);
-            //Thread.Sleep(500);
-            //Cerbot.Motor.Reverse(50);
-            //Thread.Sleep(500);
-            //Cerbot.Motor.Halt();
-
-            while (true)
-            {
-                if (_imuSerialPort.BytesToRead <= 0) continue;
-                _imuSerialPort.Read(__buffer, 0, 1);
-                __charBuffer = Encoding.UTF8.GetChars(__buffer);
-                Debug.Print(__charBuffer[0].ToString());
-            }
-
-            // Monitor the IMU.
-            while (true)
-            {
-                if (_imuLastSentence != "")
-                {
-                    _imu.SetData(_imuLastSentence);
-                    Debug.Print(_imu.Roll.ToString());
-                }
-                Thread.Sleep(200);
-            }
-        }
-
-        private static byte[] __buffer = new byte[1];
-        private static char[] __charBuffer = new char[1];
-
-        private static string _imuBuffer = "";
-        private static string _imuLastSentence = "";
-        private static int _imuBytesReceived;
-        private static char[] _inputBuffer = new char[500];
-        private static byte[] _byteBuffer = new byte[1024];
-
-        private static void OnImuSerialPortDataReceived(object sender, SerialDataReceivedEventArgs e)
-        {
-            const string START_MARKER = "!ANG:";
-
-            Thread.Sleep(20);
-            // Read all data and buffer to a string.
-            if (!_imuSerialPort.IsOpen) return;
-            _imuBytesReceived = ((SerialPort)sender).BytesToRead;
-            _byteBuffer = new byte[_imuBytesReceived];
-            ((SerialPort)sender).Read(_byteBuffer, 0, _imuBytesReceived);
-            _inputBuffer = Encoding.UTF8.GetChars(_byteBuffer);
-            var strBuffer = new string(_inputBuffer);
-            // See if the buffer contains a start marker.
-            if (strBuffer == null) return;
-            var start = strBuffer.IndexOf(START_MARKER);
-            if (start >= 0)
-            {
-                if (_imuBuffer == "")
-                {
-                    // Assumes there are not more than one start marker in a single message.
-                    _imuBuffer = strBuffer.Substring(start, strBuffer.Length - start);
-                }
-                else
-                {
-                    if (start > 0)          // start marker is not the first thing in the message.
-                    {
-                        _imuBuffer += strBuffer.Substring(0, start);
-                    }
-                    _imuLastSentence = _imuBuffer;
-                    _imuBuffer = "";
-                }
-            }
-#if DEBUG
-            //            Debug.Print(_imuLastSentence);
-#endif
-        }
-    }
-    */
 }
