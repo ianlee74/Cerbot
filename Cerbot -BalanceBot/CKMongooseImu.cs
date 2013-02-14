@@ -40,10 +40,14 @@ namespace IanLee
             return (_serialPort.IsOpen);
         }
 
+        public int UpdateFreqency { get; set; }
+
         private readonly byte[] _buffer = new byte[1024];
         private int _countRead = 0;
         private readonly byte[] _tBuffer = new byte[1024];
         private bool _find;
+        private DateTime _startTime = DateTime.Now;
+        private int _cnt;
 
         private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
@@ -66,6 +70,15 @@ namespace IanLee
                 _countRead = 0;
                 if ((_buffer[0] == (byte)'!') && (_buffer[1] == (byte)'A') && (_buffer[2] == (byte)'N') && (_buffer[3] == (byte)'G') && (_buffer[4] == (byte)':'))
                 {
+                    // Count the update frequency metric.
+                    if (_startTime.AddSeconds(5) < DateTime.Now)
+                    {
+                        UpdateFreqency = _cnt / 5;
+                        _cnt = 0;
+                        _startTime = DateTime.Now;
+                    }
+                    _cnt++;
+
                     try
                     {
                         var str = new string(Encoding.UTF8.GetChars(_buffer));

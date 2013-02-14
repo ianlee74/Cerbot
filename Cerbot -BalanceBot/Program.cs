@@ -54,7 +54,7 @@ namespace Cerbot
             _button = new InterruptPort(FEZCerberus.Pin.PC14, true, Port.ResistorMode.Disabled, Port.InterruptMode.InterruptEdgeLow);
             _button.OnInterrupt += (data1, data2, time) =>
                 {
-                    Kd++;
+                    PID.Kd++;
                 };
 
             // LED tester
@@ -70,7 +70,7 @@ namespace Cerbot
 
             _display.Clear();
 
-            var currentDirection = DIRECTION_HALT;
+            var currentDirection = (byte)DIRECTION_HALT;
             var speed = 0;
             var dutyCycle = 0.0;
             var startTime = DateTime.Now;
@@ -80,7 +80,7 @@ namespace Cerbot
             {
                 if (startTime.AddSeconds(5) < DateTime.Now)
                 {
-                    UpdateDisplay("FREQ: " + cnt/5);
+                    UpdateDisplay("PID FREQ: " + cnt/5, "IMU FREQ: " + _ckdevice.UpdateFreqency);
                     cnt = 0;
                     startTime = DateTime.Now;
                 }
@@ -90,7 +90,7 @@ namespace Cerbot
                 const int FALLING_THRESHOLD = 80;
 
                 var pitch = (int)_ckdevice.Pitch;
-                var pidSpeed = UpdatePid(BALANCED_PITCH, pitch);
+                var pidSpeed = PID.Update(BALANCED_PITCH, pitch);
                 
                 //UpdateDisplay("PIT: " + pitch + " PID: " + pidSpeed);
 #if DEBUG
@@ -107,20 +107,19 @@ namespace Cerbot
                 }
                 else if (pitch > BALANCED_PITCH)
                 {
-                    speed = Constrain(MOTOR_MIN_SPEED + (pidSpeed < 0 ? -pidSpeed : pidSpeed), MOTOR_MIN_SPEED, MOTOR_MAX_SPEED);
-                    //dutyCycle = Cerbot.Motor.Forward(speed);       // Left LEDs
+                    speed = PID.Constrain(MOTOR_MIN_SPEED + (pidSpeed < 0 ? -pidSpeed : pidSpeed), MOTOR_MIN_SPEED, MOTOR_MAX_SPEED);
+                    dutyCycle = Cerbot.Motor.Forward(speed);       // Left LEDs
                     //UpdateDisplay(null, "Kd: " + Kd + " FWD DC: " + dutyCycle);
                     currentDirection = DIRECTION_FORWARD;
                 }
                 else if (pitch < BALANCED_PITCH)
                 {
-                    speed = Constrain(MOTOR_MIN_SPEED + pidSpeed, MOTOR_MIN_SPEED, MOTOR_MAX_SPEED);
-                    //dutyCycle = Cerbot.Motor.Reverse(speed);        // Right LEDs
+                    speed = PID.Constrain(MOTOR_MIN_SPEED + pidSpeed, MOTOR_MIN_SPEED, MOTOR_MAX_SPEED);
+                    dutyCycle = Cerbot.Motor.Reverse(speed);        // Right LEDs
                     //UpdateDisplay(null, "Kd: " + Kd + " REV DC: " + dutyCycle);
                     currentDirection = DIRECTION_REVERSE;
                 }
-                ShowLeds((byte)speed, (byte)currentDirection);
-                //Thread.Sleep(250);
+                //ShowLeds(speed, currentDirection);
             }
         }
 
@@ -139,46 +138,11 @@ namespace Cerbot
             }
         }
 
-        private const int GUARD_GAIN = 10;
-        private static int pTerm;
-        private static int Kp = 3;
-        private static int integrated_error;
-        private static int iTerm;
-        private static int Ki = 0;
-        private static int dTerm ;
-        private static int Kd = 0;
-        private static int last_error;
-        private static int K = 1;
-        private static int pid = 0;
-
-        // PID function from http://www.x-firm.com/?page_id=193
-        private static int UpdatePid(int targetPosition, int currentPosition)
-        {
-            //if (currentPosition < 0) currentPosition = -currentPosition;
-            var error = targetPosition - currentPosition;
-            pTerm = Kp * error;
-            integrated_error += error;
-            iTerm = Ki * Constrain(integrated_error, -GUARD_GAIN, GUARD_GAIN);
-            dTerm = Kd * (error - last_error);
-            last_error = error;
-            pid = Constrain(K * (pTerm + iTerm + dTerm), -255, 255);
-
-#if DEBUG
-            Debug.Print("K = " + K + " pTerm = " + pTerm + " iTerm = " + iTerm + " dTerm = " + dTerm);
-#endif
-            return pid;
-            //return -Constrain(K * (pTerm + iTerm + dTerm), -255, 255);
-        }
-
-        private static int Constrain(int value, int min, int max)
-        {
-            if (value < min) return min;
-            if (value > max) return max;
-            return value;
-        }
 
         private static void ShowLeds(int speed, byte direction)
         {
+            Cerbot.ForwardLEDs.SetLEDArray(0xff, 0xff);
+            return;
             var level = speed/10;
             level = level < 0 ? -level : level;
 
