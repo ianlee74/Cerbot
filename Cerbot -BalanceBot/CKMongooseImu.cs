@@ -61,7 +61,7 @@ namespace IanLee
             var buffer1 = new byte[1];
             var buffer2 = new byte[1];
             var valBuffer = new byte[MAX_VAL_SIZE];
-            byte[] valBuffer2;
+            //byte[] valBuffer2;
             var valLen = 0;
 
             while (true)
@@ -92,9 +92,10 @@ namespace IanLee
                 }
                 if (buffer2[0] == (byte) '!') continue;
 
-                valBuffer2 = new byte[valLen];
-                valBuffer.CopyTo(valBuffer2, 0, valLen);
-                Pitch = double.Parse(new string(Encoding.UTF8.GetChars(valBuffer2)));
+                //valBuffer2 = new byte[valLen];
+                //Array.Copy(valBuffer, 0, valBuffer2, 0, valLen);
+                //valBuffer.CopyTo(valBuffer2, 0, valLen);
+                Pitch = double.Parse(new string(Encoding.UTF8.GetChars(valBuffer, 0, valLen)));
 
                 // Count the update frequency metric.
                 if (_startTime.AddSeconds(FREQ_CALC_PERIOD) < DateTime.Now)
