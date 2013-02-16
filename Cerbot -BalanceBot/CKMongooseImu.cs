@@ -2,6 +2,8 @@ using System;
 using System.IO.Ports;
 using System.Text;
 using Microsoft.SPOT;
+using System.Threading;
+using Cerbot.Extensions;
 
 namespace IanLee
 {
@@ -22,7 +24,9 @@ namespace IanLee
         public CKMongooseImu(string com, int baund)
         {
             _serialPort = new SerialPort(com, baund);
-            _serialPort.DataReceived += OnDataReceived;
+            //_serialPort.DataReceived += OnDataReceived;
+            var t = new Thread(PollingParser);
+            t.Start();
         }
 
         public void Open()
@@ -52,17 +56,75 @@ namespace IanLee
 
         private void PollingParser()
         {
+            const byte MAX_VAL_SIZE = 8;
+
+            var buffer1 = new byte[1];
+            var buffer2 = new byte[1];
+            var valBuffer = new byte[MAX_VAL_SIZE];
+            byte[] valBuffer2;
+            var valLen = 0;
+
             while (true)
             {
-                if (_serialPort.BytesToRead == 0) continue;
+                if (!_serialPort.IsOpen || _serialPort.BytesToRead < MAX_VAL_SIZE + 1) continue;      // We're looking for something like "!-17.14" (begins with '!', ends with newline)
 
-                _serialPort.Read(_tBuffer, 0, 1);
+                // Look for an '!'
+                if (buffer2[0] != (byte) '!')
+                {
+                    _serialPort.Read(buffer1, 0, 1);
+                    if (buffer1[0] != (byte) '!') continue;
+                }
 
+                // Read value.
+                valLen = 0;
+                while (true)
+                {                    
+                    _serialPort.Read(buffer2, 0, 1);
+
+                    // If we get to an '!' before the newline then something is corrupt.
+                    if (buffer2[0] == (byte) '!') break;
+
+                    // Are we at the end (newline)?
+                    if (buffer2[0] == 13) break;
+
+                    valBuffer[valLen] = buffer2[0];
+                    valLen++;
+                }
+                if (buffer2[0] == (byte) '!') continue;
+
+                valBuffer2 = new byte[valLen];
+                valBuffer.CopyTo(valBuffer2, 0, valLen);
+                Pitch = double.Parse(new string(Encoding.UTF8.GetChars(valBuffer2)));
+
+                // Count the update frequency metric.
+                if (_startTime.AddSeconds(FREQ_CALC_PERIOD) < DateTime.Now)
+                {
+                    UpdateFreqency = _readingFreqCnt / FREQ_CALC_PERIOD;
+                    _readingFreqCnt = 0;
+                    _startTime = DateTime.Now;
+                }
+                _readingFreqCnt++;
             }
         }
 
         private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
+            const byte MAX_VAL_SIZE = 6;
+
+            var inBuffer = new byte[1];
+            var valBuffer = new byte[MAX_VAL_SIZE];
+
+            while (true)
+            {
+                if (_serialPort.BytesToRead < MAX_VAL_SIZE + 1) continue; // We're looking for something like "!-17.14" (begins with '!', ends with newline)
+
+                // Look for an '!'
+                _serialPort.Read(inBuffer, 0, 1);
+                if (inBuffer[0] != (byte) '!') continue;
+            }
+
+
+
             var byteread = _serialPort.BytesToRead;
             _serialPort.Read(_tBuffer, 0, byteread);
 
@@ -80,7 +142,7 @@ namespace IanLee
             if (_find)
             {
                 _countRead = 0;
-                if ((_buffer[0] == (byte)'!') && (_buffer[1] == (byte)'A') && (_buffer[2] == (byte)'N') && (_buffer[3] == (byte)'G') && (_buffer[4] == (byte)':'))
+                if ((_buffer[0] == (byte)'!')) //&& (_buffer[1] == (byte)'A') && (_buffer[2] == (byte)'N') && (_buffer[3] == (byte)'G') && (_buffer[4] == (byte)':'))
                 {
                     // Count the update frequency metric.
                     if (_startTime.AddSeconds(FREQ_CALC_PERIOD) < DateTime.Now)

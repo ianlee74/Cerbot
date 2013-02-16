@@ -83,7 +83,7 @@ namespace Cerbot
             {
                 if (startTime.AddSeconds(PID_FREQ_CALC_PERIOD) < DateTime.Now)
                 {
-                    //UpdateDisplay("PID FREQ: " + cnt / PID_FREQ_CALC_PERIOD, "IMU FREQ: " + _imu.UpdateFreqency);
+                    UpdateDisplay("PID FREQ: " + cnt / PID_FREQ_CALC_PERIOD, "IMU FREQ: " + _imu.UpdateFreqency);
                     cnt = 0;
                     startTime = DateTime.Now;
                 }
@@ -94,8 +94,8 @@ namespace Cerbot
 
                 var pitch = (int)_imu.Pitch;
                 var pidSpeed = pid.Update(BALANCED_PITCH, pitch);
-                
-                UpdateDisplay("PIT: " + pitch + " PID: " + pidSpeed);
+
+                //UpdateDisplay("PIT: " + pitch + " PID: " + pidSpeed);
 #if DEBUG
                 Debug.Print("ROLL: " + (int)_ckdevice.Roll + "  YAW: " + (int)_ckdevice.Yaw + "  PITCH: " + pitch + "  ERRS: " + _ckdevice.Errors + "  PID: " + pidSpeed);
 #endif

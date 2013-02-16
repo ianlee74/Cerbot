@@ -33,6 +33,7 @@
     <Compile Include="CerbotTester.cs" />
     <Compile Include="CKMongooseImu.cs" />
     <Compile Include="CKMongooseImu.old.cs" />
+    <Compile Include="Extensions\ByteExtensions.cs" />
     <Compile Include="HD44780_Display.cs" />
     <Compile Include="Pid.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -44,13 +45,11 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="GHI.OSHW.Hardware, Version=4.2.3.1, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Microsoft.SPOT.Graphics" />
+    <Reference Include="GHI.OSHW.Hardware, Version=4.2.4.0, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.SPOT.Hardware" />
     <Reference Include="Microsoft.SPOT.Hardware.PWM" />
     <Reference Include="Microsoft.SPOT.Hardware.SerialPort" />
-    <Reference Include="Microsoft.SPOT.Native">
-    </Reference>
+    <Reference Include="Microsoft.SPOT.Native" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources.resx">
