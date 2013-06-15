@@ -19,31 +19,31 @@ namespace Cerbot
 
         private const int PID_FREQ_CALC_PERIOD = 10;
 
-        private const int BALANCED_PITCH = -1;
+        private const int BALANCED_PITCH = 2;
 
         private static CKMongooseImu _imu;
-        private static InterruptPort _button;
+        //private static InterruptPort _button;
 
-        private static HD44780_Display _display;
-        private static OutputPort _lcdRS;
-        private static OutputPort _lcdE;
-        private static OutputPort _lcdD4;
-        private static OutputPort _lcdD5;
-        private static OutputPort _lcdD6;
-        private static OutputPort _lcdD7;
-        private static OutputPort _lcdBacklight;
+        //private static HD44780_Display _display;
+        //private static OutputPort _lcdRS;
+        //private static OutputPort _lcdE;
+        //private static OutputPort _lcdD4;
+        //private static OutputPort _lcdD5;
+        //private static OutputPort _lcdD6;
+        //private static OutputPort _lcdD7;
+        //private static OutputPort _lcdBacklight;
 
         public static void Main()
         {
             // Initialize display (can't use until Cerbot gets +5V)
-            _lcdRS = new OutputPort(FEZCerberus.Pin.PC1, false);            // Socket.Pin.Four
-            _lcdE = new OutputPort(FEZCerberus.Pin.PC0, false);             // Socket.Pin.Three
-            _lcdD4 = new OutputPort(FEZCerberus.Pin.PA4, false);            // Socket.Pin.Five
-            _lcdD5 = new OutputPort(FEZCerberus.Pin.PC6, false);            // Socket.Pin.Seven
-            _lcdD6 = new OutputPort(FEZCerberus.Pin.PC7, false);            // Socket.Pin.Nine
-            _lcdD7 = new OutputPort(FEZCerberus.Pin.PC5, false);            // Socket.Pin.Six
-            _lcdBacklight = new OutputPort(FEZCerberus.Pin.PA7, true);
-            _display = new HD44780_Display(_lcdRS, _lcdE, _lcdD4, _lcdD5, _lcdD6, _lcdD7, _lcdBacklight);
+            //_lcdRS = new OutputPort(FEZCerberus.Pin.PC1, false);            // Socket.Pin.Four
+            //_lcdE = new OutputPort(FEZCerberus.Pin.PC0, false);             // Socket.Pin.Three
+            //_lcdD4 = new OutputPort(FEZCerberus.Pin.PA4, false);            // Socket.Pin.Five
+            //_lcdD5 = new OutputPort(FEZCerberus.Pin.PC6, false);            // Socket.Pin.Seven
+            //_lcdD6 = new OutputPort(FEZCerberus.Pin.PC7, false);            // Socket.Pin.Nine
+            //_lcdD7 = new OutputPort(FEZCerberus.Pin.PC5, false);            // Socket.Pin.Six
+            //_lcdBacklight = new OutputPort(FEZCerberus.Pin.PA7, true);
+            //_display = new HD44780_Display(_lcdRS, _lcdE, _lcdD4, _lcdD5, _lcdD6, _lcdD7, _lcdBacklight);
             UpdateDisplay("Cerbot says,", "    hello world!");
 
             // Initialize IMU
@@ -54,11 +54,11 @@ namespace Cerbot
             Cerbot.InitializeCerbot.Motors();
             Cerbot.InitializeCerbot.ForwardLEDs();
 
-            _button = new InterruptPort(FEZCerberus.Pin.PC14, true, Port.ResistorMode.Disabled, Port.InterruptMode.InterruptEdgeLow);
-            _button.OnInterrupt += (data1, data2, time) =>
-                {
-                    pid.Kd++;
-                };
+            //_button = new InterruptPort(FEZCerberus.Pin.PC14, true, Port.ResistorMode.Disabled, Port.InterruptMode.InterruptEdgeLow);
+            //_button.OnInterrupt += (data1, data2, time) =>
+            //    {
+            //        pid.Kd++;
+            //    };
 
             // LED tester
             byte led = 1;
@@ -71,7 +71,7 @@ namespace Cerbot
             }
             //return;
 
-            _display.Clear();
+            //_display.Clear();
 
             var currentDirection = (byte)DIRECTION_HALT;
             var speed = 0;
@@ -83,7 +83,7 @@ namespace Cerbot
             {
                 if (startTime.AddSeconds(PID_FREQ_CALC_PERIOD) < DateTime.Now)
                 {
-                    UpdateDisplay("PID FREQ: " + cnt / PID_FREQ_CALC_PERIOD, "IMU FREQ: " + _imu.UpdateFreqency);
+                    //UpdateDisplay("PID FREQ: " + cnt / PID_FREQ_CALC_PERIOD, "IMU FREQ: " + _imu.UpdateFreqency);
                     cnt = 0;
                     startTime = DateTime.Now;
                 }
@@ -95,7 +95,7 @@ namespace Cerbot
                 var pitch = (int)_imu.Pitch;
                 var pidSpeed = pid.Update(BALANCED_PITCH, pitch);
 
-                //UpdateDisplay("PIT: " + pitch + " PID: " + pidSpeed);
+                UpdateDisplay("PIT: " + pitch + " PID: " + pidSpeed);
 #if DEBUG
                 Debug.Print("ROLL: " + (int)_ckdevice.Roll + "  YAW: " + (int)_ckdevice.Yaw + "  PITCH: " + pitch + "  ERRS: " + _ckdevice.Errors + "  PID: " + pidSpeed);
 #endif
@@ -111,14 +111,14 @@ namespace Cerbot
                 else if (pitch > BALANCED_PITCH)
                 {
                     speed = Pid.Constrain(MOTOR_MIN_SPEED + (pidSpeed < 0 ? -pidSpeed : pidSpeed), MOTOR_MIN_SPEED, MOTOR_MAX_SPEED);
-                    dutyCycle = Cerbot.Motor.Forward(speed);       // Left LEDs
+                    //dutyCycle = Cerbot.Motor.Forward(speed);       // Left LEDs
                     //UpdateDisplay(null, "Kd: " + Kd + " FWD DC: " + dutyCycle);
                     currentDirection = DIRECTION_FORWARD;
                 }
                 else if (pitch < BALANCED_PITCH)
                 {
                     speed = Pid.Constrain(MOTOR_MIN_SPEED + pidSpeed, MOTOR_MIN_SPEED, MOTOR_MAX_SPEED);
-                    dutyCycle = Cerbot.Motor.Reverse(speed);        // Right LEDs
+                    //dutyCycle = Cerbot.Motor.Reverse(speed);        // Right LEDs
                     //UpdateDisplay(null, "Kd: " + Kd + " REV DC: " + dutyCycle);
                     currentDirection = DIRECTION_REVERSE;
                 }
@@ -128,17 +128,18 @@ namespace Cerbot
 
         private static void UpdateDisplay(string line1 = null, string line2 = null)
         {
-            if (line1 != null)
-            {
-                _display.SetCursor(0,0);
-                _display.PrintString(line1);
-            }
+            return;
+            //if (line1 != null)
+            //{
+            //    _display.SetCursor(0,0);
+            //    _display.PrintString(line1);
+            //}
 
-            if (line2 != null)
-            {
-                _display.SetCursor(1,0);
-                _display.PrintString(line2);
-            }
+            //if (line2 != null)
+            //{
+            //    _display.SetCursor(1,0);
+            //    _display.PrintString(line2);
+            //}
         }
 
 

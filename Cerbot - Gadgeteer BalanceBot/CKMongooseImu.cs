@@ -3,7 +3,6 @@ using System.IO.Ports;
 using System.Text;
 using Microsoft.SPOT;
 using System.Threading;
-using Cerbot.Extensions;
 
 namespace IanLee
 {
@@ -101,78 +100,6 @@ namespace IanLee
                     _startTime = DateTime.Now;
                 }
                 _readingFreqCnt++;
-            }
-        }
-
-        private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
-        {
-            const byte MAX_VAL_SIZE = 6;
-
-            var inBuffer = new byte[1];
-            var valBuffer = new byte[MAX_VAL_SIZE];
-
-            while (true)
-            {
-                if (_serialPort.BytesToRead < MAX_VAL_SIZE + 1) continue; // We're looking for something like "!-17.14" (begins with '!', ends with newline)
-
-                // Look for an '!'
-                _serialPort.Read(inBuffer, 0, 1);
-                if (inBuffer[0] != (byte) '!') continue;
-            }
-
-
-
-            var byteread = _serialPort.BytesToRead;
-            _serialPort.Read(_tBuffer, 0, byteread);
-
-            _find = false;
-
-            for (var i = 0; i < byteread; i++)
-            {
-                if (_tBuffer[i] != 10) continue;
-
-                Array.Copy(_tBuffer, 0, _buffer, _countRead, byteread);
-                _find = true;
-                break;
-            }
-
-            if (_find)
-            {
-                _countRead = 0;
-                if ((_buffer[0] == (byte)'!')) //&& (_buffer[1] == (byte)'A') && (_buffer[2] == (byte)'N') && (_buffer[3] == (byte)'G') && (_buffer[4] == (byte)':'))
-                {
-                    // Count the update frequency metric.
-                    if (_startTime.AddSeconds(FREQ_CALC_PERIOD) < DateTime.Now)
-                    {
-                        UpdateFreqency = _readingFreqCnt / FREQ_CALC_PERIOD;
-                        _readingFreqCnt = 0;
-                        _startTime = DateTime.Now;
-                    }
-                    _readingFreqCnt++;
-
-                    try
-                    {
-                        var str = new string(Encoding.UTF8.GetChars(_buffer));
-                        var values = str.Split(',');
-
-                        Roll = double.Parse(values[1]);
-                        Pitch = double.Parse(values[2]);
-                        Yaw = double.Parse(values[3]);
-                        Temp = double.Parse(values[15]);
-                        Pressure = double.Parse(values[16]);
-
-                        if (ReceiveDataEvent != null) ReceiveDataEvent(Roll, Pitch, Yaw, Temp, Pressure);
-                    }
-                    catch
-                    {
-                        Errors++;
-                    }
-                }
-            }
-            else
-            {
-                Array.Copy(_tBuffer, 0, _buffer, _countRead, byteread);
-                _countRead = _countRead + byteread;
             }
         }
     }

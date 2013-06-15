@@ -2,6 +2,8 @@ using System.Threading;
 using Microsoft.SPOT;
 using Microsoft.SPOT.Hardware;
 using GHI.OSHW.Hardware;
+using GHI.Hardware;
+using FEZCerb = GHI.Hardware.FEZCerb;
 
 namespace Cerbot
 {
@@ -43,8 +45,8 @@ namespace Cerbot
             {
                 leftMotor = new PWM(Cpu.PWMChannel.PWM_4, 1000, 0.5, false);
                 rightMotor = new PWM(Cpu.PWMChannel.PWM_5, 1000, 0.5, false);
-                leftMotorPolarity = new OutputPort(FEZCerberus.Pin.PA6, false);
-                rightMotorPolarity = new OutputPort(FEZCerberus.Pin.PC4, false);
+                leftMotorPolarity = new OutputPort(FEZCerb.Pin.PA6, false);
+                rightMotorPolarity = new OutputPort(FEZCerb.Pin.PC4, false);
                 isCerbotMovingForward = false;
             }
 
@@ -53,8 +55,8 @@ namespace Cerbot
             {
                 leftSensor = new AnalogInput((Cpu.AnalogChannel)8);
                 rightSensor = new AnalogInput(Cpu.AnalogChannel.ANALOG_6);
-                leftIRLED = new OutputPort(FEZCerberus.Pin.PB13, true);
-                rightIRLED = new OutputPort(FEZCerberus.Pin.PB14, true);
+                leftIRLED = new OutputPort(FEZCerb.Pin.PB13, true);
+                rightIRLED = new OutputPort(FEZCerb.Pin.PB14, true);
             }
 
             // Servo motor control
@@ -74,7 +76,7 @@ namespace Cerbot
             {
                 enableFaderPin = new PWM((Cpu.PWMChannel)11, 500, 500, PWM.ScaleFactor.Microseconds, true);
                 enableFaderPin.Start();
-                shiftRegisterLatch = new OutputPort(FEZCerberus.Pin.PB2, false);
+                shiftRegisterLatch = new OutputPort(FEZCerb.Pin.PB2, false);
                 forwardLEDsConfiguration = new SPI.Configuration(Cpu.Pin.GPIO_NONE, false, 1000, 1000, false, true, 500, SPI.SPI_module.SPI1);
                 forwardLEDs = new SPI(forwardLEDsConfiguration);
                 forwardLEDsDataArray = new byte[3];
