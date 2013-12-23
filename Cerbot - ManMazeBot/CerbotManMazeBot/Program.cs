@@ -15,6 +15,9 @@ namespace CerbotManMazeBot
 {
     public partial class Program
     {
+        private const byte R_SPEED = 96;
+        private const byte L_SPEED = 100;
+
         private enum Direction
         {
             Unknown,
@@ -32,13 +35,13 @@ namespace CerbotManMazeBot
         {
             Debug.Print("Program Started");
 
-            GTM.GHIElectronics.Joystick.Position pos;
-            var joyTimer = new Gadgeteer.Timer(100);
-            joyTimer.Tick += t =>
-                {
-                    pos = joystick.GetJoystickPosition();
-                    Debug.Print("X: " + pos.X + "   Y: " + pos.Y);
-                };
+            //GTM.GHIElectronics.Joystick.Position pos;
+            //var joyTimer = new Gadgeteer.Timer(100);
+            //joyTimer.Tick += t =>
+            //    {
+            //        pos = joystick.GetJoystickPosition();
+            //        Debug.Print("X: " + pos.X + "   Y: " + pos.Y);
+            //    };
             //joyTimer.Start();
 
             // When the button is pushed, add a new direction.
@@ -54,6 +57,7 @@ namespace CerbotManMazeBot
             // When the joystick button is pressed, play the moves.
             joystick.JoystickReleased += (j, s) =>
                 {
+                    Thread.Sleep(1000);
                     for (var i = 0; i < _dirCnt; i++ )
                     {
                         Debug.Print(DirectionToString(_directions[i]));
@@ -81,15 +85,13 @@ namespace CerbotManMazeBot
 
         private void Move(Direction direction)
         {
-            const int SPEED = 100;
-
             switch (direction)
             {
                 case Direction.Forward:
-                    cerbotController.SetMotorSpeed(SPEED, SPEED);
+                    cerbotController.SetMotorSpeed(L_SPEED, R_SPEED);
                     break;
                 case Direction.Reverse:
-                    cerbotController.SetMotorSpeed(-SPEED, -SPEED);
+                    cerbotController.SetMotorSpeed(-L_SPEED, -R_SPEED);
                     break;
                 case Direction.Left:
                     TurnLeft();
@@ -106,23 +108,25 @@ namespace CerbotManMazeBot
 
         private void TurnLeft()
         {
-            cerbotController.SetMotorSpeed(0, 100);
-            Thread.Sleep(500);
+            cerbotController.SetMotorSpeed(-L_SPEED, R_SPEED);
+            Thread.Sleep(350);
             cerbotController.SetMotorSpeed(0, 0);
         }
 
         private void TurnRight()
         {
-            
+            cerbotController.SetMotorSpeed(L_SPEED, -R_SPEED);
+            Thread.Sleep(315);
+            cerbotController.SetMotorSpeed(0, 0);
         }
 
         private Direction GetDirection()
         {
-            var pos = joystick.GetJoystickPosition();
+            var pos = joystick.GetPosition();
             if (pos.X > .75) return Direction.Forward;
-            if (pos.X < .25) return Direction.Reverse;
+            if (pos.X < -.75) return Direction.Reverse;
             if(pos.Y > .75) return Direction.Left;
-            if(pos.Y < .25) return Direction.Right;
+            if(pos.Y < -.75) return Direction.Right;
             return Direction.Unknown;
         }
 
