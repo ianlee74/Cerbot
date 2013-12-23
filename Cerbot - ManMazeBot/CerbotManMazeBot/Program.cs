@@ -86,7 +86,7 @@ namespace CerbotManMazeBot
             switch (direction)
             {
                 case Direction.Forward:
-                    cerbotController.SetMotorSpeed(10, SPEED);
+                    cerbotController.SetMotorSpeed(SPEED, SPEED);
                     break;
                 case Direction.Reverse:
                     cerbotController.SetMotorSpeed(-SPEED, -SPEED);
